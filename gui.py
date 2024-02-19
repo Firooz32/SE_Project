@@ -48,11 +48,11 @@ save_button.pack(side=tk.LEFT, padx=2, pady=2)
 filter_button = tk.Button(toolbar, text="Apply Filter", command=apply_filter)
 filter_button.pack(side=tk.LEFT, padx=2, pady=2)
 
-# Canvas area for displaying the image
+# Canvas area for displayingg the image
 canvas = tk.Canvas(root, bg="white", width=400, height=300)
 canvas.pack()
 
-# Run the application
+# Run the applicatio
 root.mainloop()
 
 
