@@ -56,24 +56,9 @@ menubar.add_cascade(label="File", menu=filemenu)
 # Add menu bar to the root window
 root.config(menu=menubar)
 
-# # Create toolbar (just buttons for simplicity)
-# toolbar = tk.Frame(root)
-# toolbar.pack(side=tk.TOP, fill=tk.X)
 
-# open_button = tk.Button(toolbar, text="Open", command=open_image)
-# open_button.pack(side=tk.LEFT, padx=2, pady=2)
 
-# save_button = tk.Button(toolbar, text="Save", command=save_image)
-# save_button.pack(side=tk.LEFT, padx=2, pady=2)
-
-# filter_button = tk.Button(toolbar, text="Apply Filter", command=apply_filter)
-# filter_button.pack(side=tk.LEFT, padx=2, pady=2)
-
-# # Canvas area for displayingg the image
-# canvas = tk.Canvas(root, bg="white", width=400, height=300)
-# canvas.pack()
-
-# Run the applicatio
+# Run the application
 root.mainloop()
 
 
