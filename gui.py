@@ -34,6 +34,12 @@ def apply_filter(filter_name):
         elif filter_name == "Blur":
             filtered_image = filtered_image.filter(ImageFilter.BLUR)
         display_image(filtered_image)
+        
+def reset_image():
+    global displayed_image
+    if original_image:
+        displayed_image = original_image.copy()
+        display_image(displayed_image)       
 
 # Create main application window
 root = tk.Tk()
@@ -47,6 +53,11 @@ filemenu = tk.Menu(menubar, tearoff=0)
 filemenu.add_command(label="Open Image", command=open_image)
 filemenu.add_command(label="Save Image", command=save_image)
 menubar.add_cascade(label="File", menu=filemenu)
+
+#Reset button display
+reset_button = tk.Button(root, text="Reset", command=reset_image)
+reset_button.pack(pady=5)
+
 
 # # Edit menu
 # editmenu = tk.Menu(menubar, tearoff=0)
@@ -89,6 +100,9 @@ root.config(menu=menubar)
 label = tk.Label(root)
 label.pack(padx=10, pady=10)
 
+# Global variables to store the original and filtered images
+original_image = None
+filtered_image = None
 
 # Create toolbar (just buttons for simplicity)
 toolbar = tk.Frame(root)
