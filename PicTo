@@ -1,0 +1,148 @@
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog, simpledialog
+from PIL import Image, ImageTk, ImageFilter, ImageOps, ImageDraw, ImageFont
+import os
+
+class PhotoGallery:
+    def __init__(self, root):
+        self.root = root
+        self.root.geometry('800x600')
+        self.root.title('PicTo')
+        
+        self.username = tk.StringVar()
+        self.password = tk.StringVar()
+
+        self.logged_in = False
+
+        # Sign-in Frame
+        self.signin_frame = ttk.Frame(self.root)
+        self.signin_frame.pack(padx=20, pady=20)
+
+        ttk.Label(self.signin_frame, text="Username:").grid(row=0, column=0, padx=5, pady=5, sticky='e')
+        ttk.Entry(self.signin_frame, textvariable=self.username).grid(row=0, column=1, padx=5, pady=5)
+
+        ttk.Label(self.signin_frame, text="Password:").grid(row=1, column=0, padx=5, pady=5, sticky='e')
+        ttk.Entry(self.signin_frame, textvariable=self.password, show='*').grid(row=1, column=1, padx=5, pady=5)
+
+        ttk.Button(self.signin_frame, text="Sign In", command=self.sign_in).grid(row=2, column=0, columnspan=2, padx=5, pady=5)
+
+        # Photo Gallery Frame
+        self.gallery_frame = ttk.Frame(self.root)
+
+        self.image_paths = []
+        self.current_image_index = 0
+        self.original_images = []
+        self.edited_images = []  # For storing edited images with applied filters
+        self.image_label = ttk.Label(self.gallery_frame)
+        self.image_label.pack(pady=10)
+
+        self.photo_images = []
+        self.thumbnail_buttons = []
+        self.canvas = tk.Canvas(self.gallery_frame, bg='white')
+        self.scrollbar = ttk.Scrollbar(self.gallery_frame, orient=tk.VERTICAL, command=self.canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.canvas)
+        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Crop variables
+        self.crop_start_x = None
+        self.crop_start_y = None
+        self.crop_rect = None
+
+    def sign_in(self):
+        # Dummy credentials for demonstration
+        if self.username.get() == "firoz" and self.password.get() == "firoz32":
+            self.signin_frame.pack_forget()
+            self.gallery_frame.pack(padx=20, pady=20)
+            self.logged_in = True
+            self.load_images()
+        else:
+            messagebox.showerror("Error", "Invalid username or password.")
+
+    def load_images(self):
+        folder_path = filedialog.askdirectory()
+        if folder_path:
+            self.image_paths = [os.path.join(folder_path, file) for file in os.listdir(folder_path) if file.endswith(('.jpg', '.jpeg', '.png', '.gif'))]
+            if self.image_paths:
+                self.load_photo_images()
+                self.show_image()
+                self.show_thumbnails()
+            else:
+                messagebox.showerror("Error", "No images found in the selected folder.")
+        else:
+            messagebox.showerror("Error", "Please select a folder.")
+
+    def load_photo_images(self):
+        for path in self.image_paths:
+            image = Image.open(path)
+            self.original_images.append(image)
+            self.edited_images.append(None)  # Initialize edited images list
+            photo = ImageTk.PhotoImage(image)
+            self.photo_images.append(photo)
+
+    def show_image(self):
+        if self.logged_in:
+            if self.photo_images:
+                photo = self.photo_images[self.current_image_index]
+                self.image_label.configure(image=photo)
+                self.image_label.image = photo
+            else:
+                self.image_label.configure(text="No images found.")
+        else:
+            messagebox.showerror("Error", "Please sign in first.")
+
+
+
+def write_text(self):
+        if self.logged_in:
+            if self.photo_images:
+                text = simpledialog.askstring("Write Text", "Enter text:")
+                if text:
+                    image_path = self.image_paths[self.current_image_index]
+                    image = Image.open(image_path)
+                    draw = ImageDraw.Draw(image)
+                    font = ImageFont.truetype("arial.ttf", 50)  # Change font and size as needed
+                    draw.text((50, 50), text, fill="white", font=font)
+                    edited_photo = ImageTk.PhotoImage(image)
+                    self.image_label.configure(image=edited_photo)
+                    self.image_label.image = edited_photo
+                    self.edited_images[self.current_image_index] = image
+            else:
+                messagebox.showerror("Error", "No images found.")
+        else:
+            messagebox.showerror("Error", "Please sign in first.")
+
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = PhotoGallery(root)
+    
+    # Buttons for navigating between images and editing
+    ttk.Button(root, text="Previous", command=app.prev_image).pack(side=tk.LEFT, padx=10)
+    ttk.Button(root, text="Next", command=app.next_image).pack(side=tk.LEFT, padx=10)
+    
+    # Apply Filter dropdown menu
+    filter_options = ["Grayscale", "Blur", "Black and White", "Vintage", "Pop", "Reset"]
+    filter_menu_var = tk.StringVar(root)
+    filter_menu_var.set(filter_options[0])  # Default value
+    filter_menu = ttk.OptionMenu(root, filter_menu_var, *filter_options, command=lambda option: app.apply_filter(option))
+    filter_menu.pack(side=tk.LEFT, padx=10)
+
+    # Crop button
+    ttk.Button(root, text="Crop", command=lambda: root.bind("<Button-1>", app.start_crop)).pack(side=tk.LEFT, padx=10)
+
+    # Write Text button
+    ttk.Button(root, text="Write Text", command=app.write_text).pack(side=tk.LEFT, padx=10)
+    
+    # Bind mouse motion and release events for cropping
+    root.bind("<B1-Motion>", app.update_crop)
+    root.bind("<ButtonRelease-1>", app.end_crop)
+
+    ttk.Button(root, text="Save", command=app.save_image).pack(side=tk.LEFT, padx=10)
+    
+    root.mainloop()
+
