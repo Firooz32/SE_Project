@@ -94,9 +94,98 @@ class PhotoGallery:
         else:
             messagebox.showerror("Error", "Please sign in first.")
 
+    def show_thumbnails(self):
+        for i, photo in enumerate(self.photo_images):
+            thumbnail = Image.open(self.image_paths[i])
+            thumbnail.thumbnail((100, 100))
+            thumbnail_photo = ImageTk.PhotoImage(thumbnail)
+            thumbnail_button = ttk.Button(self.scrollable_frame, image=thumbnail_photo, command=lambda i=i: self.show_full_image(i))
+            thumbnail_button.image = thumbnail_photo
+            thumbnail_button.grid(row=i//4, column=i%4, padx=5, pady=5)
+            self.thumbnail_buttons.append(thumbnail_button)
 
+    def show_full_image(self, index):
+        self.current_image_index = index
+        self.show_image()
 
-def write_text(self):
+    def next_image(self):
+        if self.photo_images:
+            self.current_image_index = (self.current_image_index + 1) % len(self.photo_images)
+            self.show_image()
+
+    def prev_image(self):
+        if self.photo_images:
+            self.current_image_index = (self.current_image_index - 1) % len(self.photo_images)
+            self.show_image()
+
+    def apply_filter(self, filter_name):
+        if self.logged_in:
+            if self.photo_images:
+                if filter_name == "Reset":
+                    edited_photo = self.photo_images[self.current_image_index]  # Reset to original
+                    self.image_label.configure(image=edited_photo)
+                    self.image_label.image = edited_photo
+                    # Remove the edited image with filter
+                    self.edited_images[self.current_image_index] = None
+                else:
+                    image_path = self.image_paths[self.current_image_index]
+                    original_image = Image.open(image_path)
+                    filtered_image = original_image.copy()
+
+                    if filter_name == "Grayscale":
+                        filtered_image = ImageOps.grayscale(filtered_image)
+                    elif filter_name == "Blur":
+                        filtered_image = filtered_image.filter(ImageFilter.BLUR)
+                    elif filter_name == "Black and White":
+                        filtered_image = filtered_image.convert("L")
+                        threshold = simpledialog.askinteger("Black and White", "Enter threshold (0-255):", minvalue=0, maxvalue=255)
+                        if threshold is not None:
+                            filtered_image = filtered_image.point(lambda p: 255 if p > threshold else 0)
+                    elif filter_name == "Vintage":
+                        filtered_image = filtered_image.filter(ImageFilter.SHARPEN)
+                        filtered_image = ImageOps.grayscale(filtered_image)
+                    elif filter_name == "Pop":
+                        filtered_image = filtered_image.filter(ImageFilter.CONTOUR)
+
+                    edited_photo = ImageTk.PhotoImage(filtered_image)
+                    self.image_label.configure(image=edited_photo)
+                    self.image_label.image = edited_photo
+                    # Store the edited image with filter applied
+                    self.edited_images[self.current_image_index] = filtered_image
+            else:
+                messagebox.showerror("Error", "No images found.")
+        else:
+            messagebox.showerror("Error", "Please sign in first.")
+
+    def start_crop(self, event):
+        if self.crop_start_x is None or self.crop_start_y is None:
+            self.crop_start_x = event.x
+            self.crop_start_y = event.y
+
+    def update_crop(self, event):
+        if self.crop_start_x is not None and self.crop_start_y is not None:
+            if self.crop_rect:
+                self.canvas.delete(self.crop_rect)
+            self.crop_rect = self.canvas.create_rectangle(self.crop_start_x, self.crop_start_y, event.x, event.y, outline='red')
+
+    def end_crop(self, event):
+        if self.crop_start_x is not None and self.crop_start_y is not None:
+            end_x, end_y = event.x, event.y
+            # Crop the image
+            image_path = self.image_paths[self.current_image_index]
+            image = Image.open(image_path)
+            cropped_image = image.crop((self.crop_start_x, self.crop_start_y, end_x, end_y))
+            # Show cropped image
+            cropped_photo = ImageTk.PhotoImage(cropped_image)
+            self.image_label.configure(image=cropped_photo)
+            self.image_label.image = cropped_photo
+            # Reset crop variables
+            self.crop_start_x = None
+            self.crop_start_y = None
+            if self.crop_rect:
+                self.canvas.delete(self.crop_rect)
+
+    def write_text(self):
         if self.logged_in:
             if self.photo_images:
                 text = simpledialog.askstring("Write Text", "Enter text:")
@@ -110,6 +199,29 @@ def write_text(self):
                     self.image_label.configure(image=edited_photo)
                     self.image_label.image = edited_photo
                     self.edited_images[self.current_image_index] = image
+            else:
+                messagebox.showerror("Error", "No images found.")
+        else:
+            messagebox.showerror("Error", "Please sign in first.")
+
+    def save_image(self):
+        if self.logged_in:
+            if self.photo_images:
+                if self.edited_images[self.current_image_index]:  # If edited with filter applied
+                    edited_photo = self.edited_images[self.current_image_index]
+                else:  # If no filter applied
+                    edited_photo = self.original_images[self.current_image_index]
+
+                if edited_photo:
+                    save_path = filedialog.asksaveasfilename(defaultextension=".jpg")
+                    if save_path:
+                        # Save the edited photo directly
+                        edited_photo.save(save_path)
+                        messagebox.showinfo("Success", "Image saved successfully.")
+                    else:
+                        messagebox.showerror("Error", "Please provide a valid file path to save the image.")
+                else:
+                    messagebox.showerror("Error", "No edited image to save.")
             else:
                 messagebox.showerror("Error", "No images found.")
         else:
